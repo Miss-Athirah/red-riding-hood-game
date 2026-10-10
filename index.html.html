@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Red Riding Hood - Story Adventure Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        storybook: {
+                            red: '#e63946',
+                            darkred: '#b71c1c',
+                            green: '#2a9d8f',
+                            forest: '#1e4620',
+                            wood: '#8d5b4c',
+                            yellow: '#ffb703',
+                            cream: '#fefae0',
+                            gold: '#f4a261'
+                        }
+                    },
+                    fontFamily: {
+                        story: ['Fredoka', 'sans-serif'],
+                        body: ['Quicksand', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            background: linear-gradient(180deg, #386641 0%, #2a9d8f 40%, #1e4620 100%);
+            background-attachment: fixed;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Animated forest background elements */
+        .wood-border {
+            border: 6px solid #6b4226;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.3);
+            background: #fdf6e2;
+        }
+
+        .gold-badge {
+            background: radial-gradient(circle at 30% 30%, #ffe066, #d4af37);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .card-pop {
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .card-pop:hover {
+            transform: translateY(-6px) scale(1.02);
+        }
+
+        .card-pop:active {
+            transform: translateY(2px) scale(0.98);
+        }
+
+        @keyframes bounceGently {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.9); }
+        }
+
+        .animate-bounce-gentle {
+            animation: bounceGently 2s ease-in-out infinite;
+        }
+
+        .animate-glow {
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        /* Certificate Styling */
+        .certificate-frame {
+            border: 12px solid #b71c1c;
+            outline: 6px dashed #f4a261;
+            outline-offset: -10px;
+            background: #fffdf5;
+        }
+
+        /* Confetti particle style */
+        .confetti-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: dropConfetti 3s linear forwards;
+        }
+
+        @keyframes dropConfetti {
+            0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e4620;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f4a261;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden text-slate-800">
+
+    <header class="w-full bg-storybook-darkred text-white p-3 md:p-4 shadow-xl sticky top-0 z-50 border-b-4 border-storybook-yellow">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            
+            <!-- Logo & Story Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center border-2 border-storybook-yellow shadow-md text-2xl animate-bounce-gentle">
+                    🧺
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wide text-yellow-300 drop-shadow">
+                        Little Red Riding Hood
+                    </h1>
+                    <p class="text-xs text-red-100 font-medium hidden sm:block">Interactive Storybook Adventure</p>
+                </div>
+            </div>
+
+            <!-- Score & Controls -->
+            <div class="flex items-center gap-3 ml-auto">
+                <!-- Star Points Counter -->
+                <div class="bg-amber-100 text-amber-900 px-3.5 py-1.5 rounded-full font-bold flex items-center gap-2 border-2 border-amber-400 shadow-inner">
+                    <span class="text-2xl">⭐</span>
+                    <span id="game-score" class="text-xl font-bold text-amber-800">0</span>
+                </div>
+
+                <!-- Text-to-Speech Voice Audio Button -->
+                <button id="tts-btn" onclick="toggleVoice()" class="bg-yellow-400 hover:bg-yellow-300 text-yellow-950 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shadow-md transition transform hover:scale-105" title="Read Aloud Voice">
+                    <i id="tts-icon" class="fas fa-volume-high"></i>
+                </button>
+
+                <!-- Audio SFX Toggle -->
+                <button id="sfx-btn" onclick="toggleSFX()" class="bg-emerald-500 hover:bg-emerald-400 text-white w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shadow-md transition transform hover:scale-105" title="Sound Effects">
+                    <i id="sfx-icon" class="fas fa-music"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto w-full p-3 md:p-6 flex-1 flex flex-col justify-start gap-4">
+
+        <!-- Progress Stepper -->
+        <div id="progress-bar-container" class="bg-emerald-950/60 backdrop-blur-md p-3 rounded-2xl border-2 border-emerald-600/50 text-white flex justify-between items-center gap-2 shadow-lg">
+            <div class="flex items-center gap-2 w-full max-w-xs sm:max-w-md">
+                <span id="level-indicator" class="text-xs font-bold bg-yellow-400 text-yellow-950 px-2.5 py-1 rounded-full whitespace-nowrap">Level 1/4</span>
+                <div class="w-full bg-emerald-900 rounded-full h-3 border border-emerald-700 overflow-hidden">
+                    <div id="level-progress-fill" class="bg-gradient-to-r from-yellow-400 to-amber-500 h-full w-1/4 transition-all duration-500"></div>
+                </div>
+            </div>
+            <button onclick="resetCurrentLevel()" class="text-xs bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold shadow transition flex items-center gap-1">
+                <i class="fas fa-rotate-right"></i> Restart
+            </button>
+        </div>
+
+        <!-- Dynamic Game Content Card -->
+        <section id="game-card" class="wood-border rounded-3xl p-4 md:p-8 shadow-2xl relative min-h-[460px] flex flex-col justify-between">
+            
+            <!-- Level Container Screen -->
+            <div id="level-screen-content" class="w-full flex flex-col items-center">
+                <!-- Level content will be injected dynamically -->
+            </div>
+
+            <!-- Level Bottom Feedback & Action Bar -->
+            <div id="bottom-action-bar" class="w-full mt-6 pt-4 border-t-2 border-amber-200 flex justify-between items-center">
+                <button id="read-instruction-btn" onclick="speakCurrentInstruction()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs sm:text-sm px-4 py-2 rounded-xl font-bold shadow transition flex items-center gap-2">
+                    <i class="fas fa-comment-dots text-base"></i> Read Question
+                </button>
+                <div id="feedback-message" class="text-center font-bold text-sm sm:text-base text-amber-900 px-2"></div>
+                <button id="next-level-btn" onclick="nextLevel()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white text-sm sm:text-base px-6 py-2.5 rounded-xl font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2 animate-bounce-gentle">
+                    Next Level <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <section id="reward-screen" class="hidden wood-border rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center">
+            <div id="confetti-container" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+
+            <div class="text-5xl md:text-6xl mb-2 animate-bounce-gentle">🎉 🏆 ⭐</div>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-storybook-darkred mb-1">Well Done!</h2>
+            <p class="text-slate-700 text-base md:text-lg font-semibold mb-4">You completed all story challenges!</p>
+
+            <!-- Star Rating Breakdown -->
+            <div class="flex justify-center items-center gap-2 mb-6" id="star-rating-display">
+                <!-- Stars injected by JS -->
+            </div>
+
+            <!-- Student Name Form Input -->
+            <div class="w-full max-w-md bg-amber-50 p-4 rounded-2xl border-2 border-amber-300 shadow-sm mb-6 flex flex-col gap-2">
+                <label for="student-name-input" class="text-sm font-bold text-amber-900">Enter Pupil's Name for Certificate:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="student-name-input" placeholder="e.g. Alex Smith" class="flex-1 px-4 py-2 rounded-xl border-2 border-amber-400 focus:outline-none focus:border-red-500 font-bold text-slate-800 text-center">
+                    <button onclick="updateCertificateName()" class="bg-storybook-darkred hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl transition shadow">
+                        Generate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Certificate Printable Template -->
+            <div id="certificate-print-area" class="certificate-frame rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-xl relative my-2 text-center">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-2xl">🌲</span>
+                    <span class="text-xs uppercase tracking-widest text-red-700 font-bold">Fairy Tale Storybook Award</span>
+                    <span class="text-2xl">🌲</span>
+                </div>
+
+                <h3 class="text-2xl md:text-3xl font-extrabold text-storybook-darkred mb-2 uppercase tracking-wide">
+                    Certificate of Achievement
+                </h3>
+                <p class="text-xs md:text-sm text-slate-600 font-bold">This award is proudly presented to:</p>
+
+                <div id="certificate-pupil-name" class="text-3xl md:text-4xl font-extrabold text-amber-800 my-4 underline decoration-amber-400 underline-offset-8">
+                    Little Reader
+                </div>
+
+                <p class="text-xs md:text-sm text-slate-700 font-semibold max-w-md mx-auto mb-4">
+                    For successfully mastering all 4 interactive story levels of <br>
+                    <span class="text-storybook-darkred font-bold">"Little Red Riding Hood"</span> with excellent reading skills!
+                </p>
+
+                <div class="flex justify-between items-end mt-6 pt-4 border-t-2 border-amber-200 text-left">
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">Date</p>
+                        <p id="cert-date" class="text-xs font-bold text-slate-800">October 2026</p>
+                    </div>
+                    <div class="gold-badge w-14 h-14 rounded-full border-2 border-yellow-700 flex items-center justify-center text-xl shadow">
+                        👑
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">Score Achieved</p>
+                        <p id="cert-score-display" class="text-xs font-bold text-amber-900">100% (100 Stars)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex flex-wrap justify-center gap-4 mt-6">
+                <button onclick="printCertificate()" class="bg-yellow-500 hover:bg-yellow-400 text-yellow-950 px-6 py-3 rounded-2xl font-bold shadow-lg transition flex items-center gap-2">
+                    <i class="fas fa-print"></i> Print / Save Certificate
+                </button>
+                <button onclick="restartGameFromBeginning()" class="bg-storybook-darkred hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg transition flex items-center gap-2">
+                    <i class="fas fa-rotate-left"></i> Play Again
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="w-full bg-emerald-950 text-emerald-100 text-center py-3 text-xs border-t-4 border-storybook-yellow mt-6">
+        <p class="font-bold">Little Red Riding Hood Story Adventure &copy; Interactive Learning Game for Young Learners</p>
+    </footer>
+
+    <script>
+        // Game Dataset & Data Structures
+        const CHARACTERS = [
+            { id: 'red', name: 'Little Red Riding Hood', icon: '👧🏼❤️', color: 'bg-red-500 border-red-700' },
+            { id: 'grandma', name: 'Grandma', icon: '👵🏼', color: 'bg-amber-500 border-amber-700' },
+            { id: 'wolf', name: 'Big Bad Wolf', icon: '🐺', color: 'bg-slate-600 border-slate-800' },
+            { id: 'woodcutter', name: 'Woodcutter', icon: '🪓👨🏼‍🌾', color: 'bg-emerald-600 border-emerald-800' }
+        ];
+
+        const LEVEL_2_QUESTIONS = [
+            { id: 1, statement: "Little Red Riding Hood visits her Grandma.", answer: true },
+            { id: 2, statement: "The Wolf is nice and friendly.", answer: false },
+            { id: 3, statement: "Grandma lives in the city.", answer: false },
+            { id: 4, statement: "The Woodcutter stops the Wolf.", answer: true }
+        ];
+
+        const LEVEL_3_QUESTIONS = [
+            { quote: "What big teeth you have!", answerId: 'red', title: 'Who said this?' },
+            { quote: "The better to eat you with!", answerId: 'wolf', title: 'Who said this?' },
+            { quote: "I am going to visit my grandmother.", answerId: 'red', title: 'Who said this?' }
+        ];
+
+        const LEVEL_4_QUESTIONS = [
+            {
+                question: "Who takes the basket of food?",
+                options: [
+                    { id: 'red', label: 'Little Red Riding Hood', icon: '👧🏼❤️' },
+                    { id: 'wolf', label: 'The Wolf', icon: '🐺' }
+                ],
+                correctId: 'red'
+            },
+            {
+                question: "Who is in Grandma's bed?",
+                options: [
+                    { id: 'woodcutter', label: 'The Woodcutter', icon: '🪓' },
+                    { id: 'wolf', label: 'The Wolf', icon: '🐺' }
+                ],
+                correctId: 'wolf'
+            },
+            {
+                question: "Who carries an axe?",
+                options: [
+                    { id: 'woodcutter', label: 'The Woodcutter', icon: '🪓👨🏼‍🌾' },
+                    { id: 'grandma', label: 'Grandma', icon: '👵🏼' }
+                ],
+                correctId: 'woodcutter'
+            }
+        ];
+
+        // State variables
+        let currentLevel = 1;
+        let totalScore = 0;
+        let voiceEnabled = true;
+        let sfxEnabled = true;
+
+        // Level sub-indices
+        let l2Index = 0;
+        let l3Index = 0;
+        let l4Index = 0;
+        
+        // Level 1 tracking
+        let l1Matches = {};
+        let selectedL1Name = null;
+
+        // Audio Synthesizer (Web Audio API)
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!sfxEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                const now = ctx.currentTime;
+
+                if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(160, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'fanfare') {
+                    // Celebration chime
+                    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                    notes.forEach((freq, i) => {
+                        const noteOsc = ctx.createOscillator();
+                        const noteGain = ctx.createGain();
+                        noteOsc.type = 'sine';
+                        noteOsc.frequency.setValueAtTime(freq, now + i * 0.08);
+                        noteGain.gain.setValueAtTime(0.2, now + i * 0.08);
+                        noteGain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.3);
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(ctx.destination);
+                        noteOsc.start(now + i * 0.08);
+                        noteOsc.stop(now + i * 0.08 + 0.3);
+                    });
+                }
+            } catch (e) {
+                console.log("Web Audio error:", e);
+            }
+        }
+
+        // Text-to-Speech narration
+        function speakText(text) {
+            if (!voiceEnabled || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9; // Friendly clear tempo for children
+            utterance.pitch = 1.1; // Cheerful pitch
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const icon = document.getElementById('tts-icon');
+            if (voiceEnabled) {
+                icon.className = 'fas fa-volume-high';
+                speakText("Read aloud enabled!");
+            } else {
+                icon.className = 'fas fa-volume-xmark';
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            const icon = document.getElementById('sfx-icon');
+            if (sfxEnabled) {
+                icon.className = 'fas fa-music';
+                playSound('pop');
+            } else {
+                icon.className = 'fas fa-volume-off';
+            }
+        }
+
+        function addScore(points) {
+            totalScore += points;
+            document.getElementById('game-score').textContent = totalScore;
+        }
+
+        function updateProgressBar() {
+            document.getElementById('level-indicator').textContent = `Level ${currentLevel}/4`;
+            const fillPct = (currentLevel / 4) * 100;
+            document.getElementById('level-progress-fill').style.width = `${fillPct}%`;
+        }
+
+        function setFeedback(msg, isError = false) {
+            const fb = document.getElementById('feedback-message');
+            fb.textContent = msg;
+            if (isError) {
+                fb.className = "text-center font-bold text-sm sm:text-base text-red-600 px-2 animate-bounce";
+            } else {
+                fb.className = "text-center font-bold text-sm sm:text-base text-emerald-700 px-2";
+            }
+        }
+
+        function renderLevel1() {
+            setFeedback("Match each character name to their picture card!");
+            document.getElementById('next-level-btn').classList.add('hidden');
+            l1Matches = {};
+            selectedL1Name = null;
+
+            // Shuffle names for matching column
+            const shuffledNames = [...CHARACTERS].sort(() => 0.5 - Math.random());
+
+            const html = `
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-storybook-darkred">Level 1: Character Identification</h2>
+                    <p class="text-xs sm:text-sm text-amber-900 font-bold">Tap a name on the left, then tap the matching character image!</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+                    <!-- Names Buttons Column -->
+                    <div class="flex flex-col gap-3 justify-center">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-amber-800 text-center">Character Names</span>
+                        ${shuffledNames.map(c => `
+                            <button id="l1-name-${c.id}" onclick="selectL1Name('${c.id}')" 
+                                class="l1-name-btn card-pop bg-white hover:bg-amber-100 border-3 border-amber-400 text-amber-900 text-base sm:text-lg font-extrabold py-3 px-4 rounded-2xl shadow flex items-center justify-between transition">
+                                <span>${c.name}</span>
+                                <i id="l1-check-${c.id}" class="fas fa-circle text-amber-300 text-lg"></i>
+                            </button>
+                        `).join('')}
+                    </div>
+
+                    <!-- Visual Cards Grid Column -->
+                    <div class="grid grid-cols-2 gap-3">
+                        ${CHARACTERS.map(c => `
+                            <div id="l1-card-${c.id}" onclick="matchL1Card('${c.id}')" 
+                                class="card-pop bg-white border-4 border-amber-300 hover:border-storybook-red rounded-2xl p-3 flex flex-col items-center justify-center cursor-pointer shadow-md transition text-center min-h-[120px]">
+                                <span class="text-4xl md:text-5xl mb-1">${c.icon}</span>
+                                <span id="l1-label-${c.id}" class="text-xs font-bold text-slate-500">???</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('level-screen-content').innerHTML = html;
+            speakText("Level 1: Character Identification. Match character names to their visual cards!");
+        }
+
+        function selectL1Name(charId) {
+            playSound('pop');
+            if (l1Matches[charId]) return; // Already matched
+
+            // Highlight selected button
+            document.querySelectorAll('.l1-name-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-storybook-red', 'bg-yellow-100'));
+            
+            selectedL1Name = charId;
+            const btn = document.getElementById(`l1-name-${charId}`);
+            btn.classList.add('ring-4', 'ring-storybook-red', 'bg-yellow-100');
+
+            const charObj = CHARACTERS.find(c => c.id === charId);
+            speakText(charObj.name);
+            setFeedback(`Selected "${charObj.name}". Now tap the matching picture!`);
+        }
+
+        function matchL1Card(cardId) {
+            if (!selectedL1Name) {
+                playSound('wrong');
+                setFeedback("Please select a name on the left first!", true);
+                speakText("Select a name on the left first!");
+                return;
+            }
+
+            if (selectedL1Name === cardId) {
+                // Correct match!
+                playSound('correct');
+                addScore(10);
+                l1Matches[cardId] = true;
+
+                const charObj = CHARACTERS.find(c => c.id === cardId);
+                
+                // Update Name button
+                const nameBtn = document.getElementById(`l1-name-${cardId}`);
+                nameBtn.className = "bg-emerald-100 border-3 border-emerald-500 text-emerald-900 text-base sm:text-lg font-extrabold py-3 px-4 rounded-2xl shadow flex items-center justify-between cursor-default";
+                document.getElementById(`l1-check-${cardId}`).className = "fas fa-circle-check text-emerald-600 text-xl";
+
+                // Update Visual Card
+                const card = document.getElementById(`l1-card-${cardId}`);
+                card.className = "bg-emerald-50 border-4 border-emerald-500 rounded-2xl p-3 flex flex-col items-center justify-center shadow text-center cursor-default";
+                document.getElementById(`l1-label-${cardId}`).textContent = charObj.name;
+                document.getElementById(`l1-label-${cardId}`).className = "text-xs font-extrabold text-emerald-800";
+
+                selectedL1Name = null;
+                setFeedback(`Correct! That is ${charObj.name}!`);
+                speakText(`Great job! That is ${charObj.name}!`);
+
+                // Check level completion
+                if (Object.keys(l1Matches).length === CHARACTERS.length) {
+                    setTimeout(() => {
+                        playSound('fanfare');
+                        setFeedback("Awesome! Level 1 Completed! 🎉");
+                        speakText("Awesome! You completed Level 1!");
+                        document.getElementById('next-level-btn').classList.remove('hidden');
+                    }, 500);
+                }
+
+            } else {
+                // Wrong match
+                playSound('wrong');
+                setFeedback("Oops! That's not the right character. Try again!", true);
+                speakText("Oops! Try again!");
+            }
+        }
+
+        function renderLevel2() {
+            l2Index = 0;
+            displayL2Question();
+        }
+
+        function displayL2Question() {
+            document.getElementById('next-level-btn').classList.add('hidden');
+            const q = LEVEL_2_QUESTIONS[l2Index];
+
+            const html = `
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-storybook-darkred">Level 2: Yes or No Challenge</h2>
+                    <p class="text-xs sm:text-sm text-amber-900 font-bold">Read the story statement and choose Yes or No! (${l2Index + 1}/4)</p>
+                </div>
+
+                <div class="w-full max-w-xl bg-white border-4 border-amber-300 rounded-3xl p-6 shadow-xl flex flex-col items-center gap-6 my-2">
+                    <div class="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-4xl shadow-inner border-2 border-amber-300">
+                        📖
+                    </div>
+
+                    <div class="text-xl sm:text-2xl font-extrabold text-slate-800 text-center leading-relaxed">
+                        "${q.statement}"
+                    </div>
+
+                    <!-- Choice Buttons -->
+                    <div class="flex justify-center gap-4 sm:gap-8 w-full max-w-md mt-2">
+                        <button onclick="answerL2(true)" class="card-pop flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xl sm:text-2xl py-4 rounded-2xl shadow-lg border-b-4 border-emerald-700 flex items-center justify-center gap-2">
+                            👍 YES
+                        </button>
+                        <button onclick="answerL2(false)" class="card-pop flex-1 bg-red-500 hover:bg-red-600 text-white font-extrabold text-xl sm:text-2xl py-4 rounded-2xl shadow-lg border-b-4 border-red-700 flex items-center justify-center gap-2">
+                            👎 NO
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('level-screen-content').innerHTML = html;
+            setFeedback(`Question ${l2Index + 1} of 4`);
+            speakText(`${q.statement}. Is this Yes or No?`);
+        }
+
+        function answerL2(userAnswer) {
+            const q = LEVEL_2_QUESTIONS[l2Index];
+
+            if (userAnswer === q.answer) {
+                playSound('correct');
+                addScore(10);
+                setFeedback("Correct! Excellent job! ⭐");
+                speakText("Correct!");
+
+                l2Index++;
+                if (l2Index < LEVEL_2_QUESTIONS.length) {
+                    setTimeout(() => displayL2Question(), 1200);
+                } else {
+                    setTimeout(() => {
+                        playSound('fanfare');
+                        setFeedback("Fantastic! You passed Level 2! 🎉");
+                        speakText("Fantastic! You completed Level 2!");
+                        document.getElementById('next-level-btn').classList.remove('hidden');
+                    }, 800);
+                }
+            } else {
+                playSound('wrong');
+                setFeedback("Not quite right! Read carefully and try again!", true);
+                speakText("Not quite right! Try again!");
+            }
+        }
+
+        function renderLevel3() {
+            l3Index = 0;
+            displayL3Question();
+        }
+
+        function displayL3Question() {
+            document.getElementById('next-level-btn').classList.add('hidden');
+            const q = LEVEL_3_QUESTIONS[l3Index];
+
+            const html = `
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-storybook-darkred">Level 3: Who Said It?</h2>
+                    <p class="text-xs sm:text-sm text-amber-900 font-bold">Match the story quote to the right character! (${l3Index + 1}/3)</p>
+                </div>
+
+                <div class="w-full max-w-2xl flex flex-col items-center gap-6 my-2">
+                    <!-- Speech Bubble -->
+                    <div class="relative bg-amber-100 border-4 border-amber-400 rounded-3xl p-6 shadow-xl w-full text-center">
+                        <span class="absolute -top-4 left-6 text-2xl">💬</span>
+                        <p class="text-2xl sm:text-3xl font-extrabold text-amber-950 tracking-wide">
+                            "${q.quote}"
+                        </p>
+                        <!-- Speech bubble point -->
+                        <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[16px] border-t-amber-400"></div>
+                    </div>
+
+                    <p class="text-sm font-extrabold text-amber-900 mt-2">Who said this in the story?</p>
+
+                    <!-- Character Avatars Selection -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
+                        ${CHARACTERS.map(c => `
+                            <button onclick="answerL3('${c.id}')" class="card-pop bg-white hover:bg-amber-100 border-4 border-amber-300 hover:border-storybook-red rounded-2xl p-4 flex flex-col items-center shadow-md transition">
+                                <span class="text-4xl sm:text-5xl mb-2">${c.icon}</span>
+                                <span class="text-xs font-extrabold text-amber-900">${c.name}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('level-screen-content').innerHTML = html;
+            setFeedback(`Quote ${l3Index + 1} of 3`);
+            speakText(`Who said: ${q.quote}`);
+        }
+
+        function answerL3(selectedId) {
+            const q = LEVEL_3_QUESTIONS[l3Index];
+
+            if (selectedId === q.answerId) {
+                playSound('correct');
+                addScore(10);
+                const char = CHARACTERS.find(c => c.id === selectedId);
+                setFeedback(`Correct! ${char.name} said that! ⭐`);
+                speakText(`Correct! ${char.name} said that!`);
+
+                l3Index++;
+                if (l3Index < LEVEL_3_QUESTIONS.length) {
+                    setTimeout(() => displayL3Question(), 1200);
+                } else {
+                    setTimeout(() => {
+                        playSound('fanfare');
+                        setFeedback("Brilliant! Level 3 Completed! 🎉");
+                        speakText("Brilliant! You completed Level 3!");
+                        document.getElementById('next-level-btn').classList.remove('hidden');
+                    }, 800);
+                }
+            } else {
+                playSound('wrong');
+                setFeedback("Oops! That character didn't say that quote. Try again!", true);
+                speakText("Oops! Try again!");
+            }
+        }
+
+        function renderLevel4() {
+            l4Index = 0;
+            displayL4Question();
+        }
+
+        function displayL4Question() {
+            document.getElementById('next-level-btn').classList.add('hidden');
+            const q = LEVEL_4_QUESTIONS[l4Index];
+
+            const html = `
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-storybook-darkred">Level 4: Choose the Right Character</h2>
+                    <p class="text-xs sm:text-sm text-amber-900 font-bold">Select the correct character for the question! (${l4Index + 1}/3)</p>
+                </div>
+
+                <div class="w-full max-w-xl bg-white border-4 border-amber-300 rounded-3xl p-6 shadow-xl flex flex-col items-center gap-6 my-2">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-amber-950 text-center leading-snug">
+                        "${q.question}"
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-2">
+                        ${q.options.map(opt => `
+                            <button onclick="answerL4('${opt.id}')" class="card-pop bg-gradient-to-b from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 border-4 border-amber-400 hover:border-storybook-red text-amber-950 p-5 rounded-2xl shadow-lg flex flex-col items-center gap-2 transition">
+                                <span class="text-5xl">${opt.icon}</span>
+                                <span class="text-base font-extrabold">${opt.label}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('level-screen-content').innerHTML = html;
+            setFeedback(`Question ${l4Index + 1} of 3`);
+            speakText(q.question);
+        }
+
+        function answerL4(selectedId) {
+            const q = LEVEL_4_QUESTIONS[l4Index];
+
+            if (selectedId === q.correctId) {
+                playSound('correct');
+                addScore(10);
+                setFeedback("Super! That is correct! ⭐");
+                speakText("Super! That is correct!");
+
+                l4Index++;
+                if (l4Index < LEVEL_4_QUESTIONS.length) {
+                    setTimeout(() => displayL4Question(), 1200);
+                } else {
+                    setTimeout(() => {
+                        playSound('fanfare');
+                        setFeedback("Hooray! You completed all levels! 🏆");
+                        speakText("Hooray! You completed all story levels!");
+                        document.getElementById('next-level-btn').classList.remove('hidden');
+                        document.getElementById('next-level-btn').innerHTML = `View Reward Certificate <i class="fas fa-trophy ml-1"></i>`;
+                    }, 800);
+                }
+            } else {
+                playSound('wrong');
+                setFeedback("Not that character! Think about the story and try again!", true);
+                speakText("Try again!");
+            }
+        }
+
+        function nextLevel() {
+            playSound('pop');
+            if (currentLevel < 4) {
+                currentLevel++;
+                updateProgressBar();
+                if (currentLevel === 2) renderLevel2();
+                else if (currentLevel === 3) renderLevel3();
+                else if (currentLevel === 4) renderLevel4();
+            } else {
+                // Final Celebration Reward Screen
+                showRewardScreen();
+            }
+        }
+
+        function resetCurrentLevel() {
+            playSound('pop');
+            if (currentLevel === 1) renderLevel1();
+            else if (currentLevel === 2) renderLevel2();
+            else if (currentLevel === 3) renderLevel3();
+            else if (currentLevel === 4) renderLevel4();
+        }
+
+        function speakCurrentInstruction() {
+            const fb = document.getElementById('feedback-message').textContent;
+            if (fb) speakText(fb);
+        }
+
+        function showRewardScreen() {
+            playSound('fanfare');
+            document.getElementById('progress-bar-container').classList.add('hidden');
+            document.getElementById('game-card').classList.add('hidden');
+            document.getElementById('reward-screen').classList.remove('hidden');
+
+            // Generate Confetti Particles
+            const confettiContainer = document.getElementById('confetti-container');
+            confettiContainer.innerHTML = '';
+            const colors = ['#e63946', '#ffb703', '#2a9d8f', '#f4a261', '#457b9d'];
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'confetti-particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.width = `${Math.random() * 12 + 6}px`;
+                particle.style.height = `${Math.random() * 12 + 6}px`;
+                particle.style.borderRadius = '50%';
+                particle.style.animationDuration = `${Math.random() * 2 + 2}s`;
+                particle.style.animationDelay = `${Math.random() * 1}s`;
+                confettiContainer.appendChild(particle);
+            }
+
+            // Star Rating (Max score 100)
+            const starContainer = document.getElementById('star-rating-display');
+            let starHtml = '';
+            const starsEarned = totalScore >= 90 ? 3 : totalScore >= 60 ? 2 : 1;
+            for (let i = 0; i < 3; i++) {
+                if (i < starsEarned) {
+                    starHtml += `<span class="text-5xl text-yellow-400 animate-bounce-gentle">⭐</span>`;
+                } else {
+                    starHtml += `<span class="text-5xl text-slate-300">⭐</span>`;
+                }
+            }
+            starContainer.innerHTML = starHtml;
+
+            // Certificate Info
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            document.getElementById('cert-date').textContent = dateStr;
+            document.getElementById('cert-score-display').textContent = `${totalScore} Stars Earned`;
+
+            speakText("Congratulations! You completed the Little Red Riding Hood adventure! Enter your name for your certificate!");
+        }
+
+        function updateCertificateName() {
+            const nameInput = document.getElementById('student-name-input').value.trim();
+            if (nameInput) {
+                playSound('correct');
+                document.getElementById('certificate-pupil-name').textContent = nameInput;
+                speakText(`Certificate updated for ${nameInput}!`);
+            } else {
+                playSound('wrong');
+                speakText("Please type a name first!");
+            }
+        }
+
+        function printCertificate() {
+            playSound('pop');
+            window.print();
+        }
+
+        function restartGameFromBeginning() {
+            playSound('pop');
+            currentLevel = 1;
+            totalScore = 0;
+            document.getElementById('game-score').textContent = "0";
+
+            document.getElementById('reward-screen').classList.add('hidden');
+            document.getElementById('progress-bar-container').classList.remove('hidden');
+            document.getElementById('game-card').classList.remove('hidden');
+
+            updateProgressBar();
+            renderLevel1();
+        }
+
+        // Initialize game on window load
+        window.onload = function() {
+            updateProgressBar();
+            renderLevel1();
+        };
+    </script>
+</body>
+</html>
